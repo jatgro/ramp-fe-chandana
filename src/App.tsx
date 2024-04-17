@@ -19,14 +19,23 @@ export function App() {
     [paginatedTransactions, transactionsByEmployee]
   )
 
+  const loadNewTransactions = useCallback(async () => {
+    setIsLoading(true)
+    // transactionsByEmployeeUtils.invalidateData()
+
+    await employeeUtils.fetchAll()
+    await paginatedTransactionsUtils.fetchNew?.()
+
+    setIsLoading(false)
+  }, [employeeUtils, paginatedTransactionsUtils])
+
   const loadAllTransactions = useCallback(async () => {
     setIsLoading(true)
     transactionsByEmployeeUtils.invalidateData()
 
     await employeeUtils.fetchAll()
-    await paginatedTransactionsUtils.fetchAll()
-
     setIsLoading(false)
+    await paginatedTransactionsUtils.fetchAll()
   }, [employeeUtils, paginatedTransactionsUtils, transactionsByEmployeeUtils])
 
   const loadTransactionsByEmployee = useCallback(
@@ -79,7 +88,7 @@ export function App() {
               className="RampButton"
               disabled={paginatedTransactionsUtils.loading}
               onClick={async () => {
-                await loadAllTransactions()
+                await loadNewTransactions()
               }}
             >
               View More
