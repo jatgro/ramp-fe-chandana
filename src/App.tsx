@@ -14,33 +14,42 @@ export function App() {
   const { data: transactionsByEmployee, ...transactionsByEmployeeUtils } = useTransactionsByEmployee()
   const [isLoading, setIsLoading] = useState(false)
 
-  const transactions = useMemo(
-    () => paginatedTransactions?.data ?? transactionsByEmployee ?? null,
-    [paginatedTransactions, transactionsByEmployee]
-  )
+  const [hideViewMore, setHideViewMore] = useState(false)
 
-  const loadNewTransactions = useCallback(async () => {
-    // setIsLoading(true)
-    // transactionsByEmployeeUtils.invalidateData()
+  useEffect(() => {
+    if (paginatedTransactions?.nextPage === null) {
+      setHideViewMore(true)
+    }
+  }, [paginatedTransactions?.nextPage])
 
-    // await employeeUtils.fetchAll()
-    await paginatedTransactionsUtils.fetchNew?.()
+  const transactions = useMemo(() => {
+    return paginatedTransactions?.data ?? transactionsByEmployee ?? null
+  }, [paginatedTransactions, transactionsByEmployee])
 
-    setIsLoading(false)
+  const loadNewTransactions = useMemo(() => {
+    return async () => {
+      await paginatedTransactionsUtils.fetchNew?.()
+    }
   }, [paginatedTransactionsUtils])
 
-  const loadAllTransactions = useCallback(async () => {
+  const loadEmployees = useCallback(async () => {
     setIsLoading(true)
     transactionsByEmployeeUtils.invalidateData()
 
     await employeeUtils.fetchAll()
     setIsLoading(false)
+  }, [employeeUtils, transactionsByEmployeeUtils])
+
+  const loadAllTransactions = useCallback(async () => {
+    loadEmployees()
     await paginatedTransactionsUtils.fetchAll()
-  }, [employeeUtils, paginatedTransactionsUtils, transactionsByEmployeeUtils])
+    setHideViewMore(false)
+  }, [loadEmployees, paginatedTransactionsUtils])
 
   const loadTransactionsByEmployee = useCallback(
     async (employeeId: string) => {
       paginatedTransactionsUtils.invalidateData()
+      setHideViewMore(true)
       await transactionsByEmployeeUtils.fetchById(employeeId)
     },
     [paginatedTransactionsUtils, transactionsByEmployeeUtils]
@@ -48,9 +57,10 @@ export function App() {
 
   useEffect(() => {
     if (employees === null && !employeeUtils.loading) {
+      loadEmployees()
       loadAllTransactions()
     }
-  }, [employeeUtils.loading, employees, loadAllTransactions])
+  }, [employeeUtils.loading, employees, loadAllTransactions, loadEmployees])
 
   return (
     <Fragment>
@@ -72,9 +82,11 @@ export function App() {
           onChange={async (newValue) => {
             if (newValue === null) {
               return
+            } else if (newValue === EMPTY_EMPLOYEE) {
+              loadAllTransactions()
+            } else {
+              await loadTransactionsByEmployee(newValue.id)
             }
-
-            await loadTransactionsByEmployee(newValue.id)
           }}
         />
 
@@ -87,6 +99,7 @@ export function App() {
             <button
               className="RampButton"
               disabled={paginatedTransactionsUtils.loading}
+              hidden={hideViewMore}
               onClick={async () => {
                 await loadNewTransactions()
               }}
