@@ -41,6 +41,7 @@ export function App() {
   }, [employeeUtils, transactionsByEmployeeUtils])
 
   const loadAllTransactions = useCallback(async () => {
+    paginatedTransactionsUtils.invalidateData()
     loadEmployees()
     await paginatedTransactionsUtils.fetchAll()
     setHideViewMore(false)
